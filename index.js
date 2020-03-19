@@ -6,7 +6,7 @@ $(document).ready(() => {
 
     var defenderRadius = 3;
 
-    var defenderRatio = 0.1;
+    var defenderRatio = 0.01;
 
     var defenseDistance = 10;
 
@@ -16,7 +16,7 @@ $(document).ready(() => {
 
     var bloodCellStartCount = 50;
 
-    var virusStartCount = 4;
+    var virusStartCount = 2;
 
     var defenderSpawnRate = 5000;
 
