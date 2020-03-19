@@ -255,7 +255,7 @@ $(document).ready(() => {
 
     $(document).on("click","#dialogRestartButton",() => {
         $("#completionDialog").remove();
-        startSimulation();
+        setSimulationActiveState(true);
     });
 
     $(document).on("click","#dialogOptionsButton",() => {
