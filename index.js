@@ -1,32 +1,18 @@
 $(document).ready(() => {
 
-    var bloodCellRadius = 5;
-
-    var virusRadius = 2;
-
-    var defenderRadius = 3;
-
-    var defenderRatio = 0.01;
-
-    var defenseDistance = 10;
-
-    var followDistance = 400;
-
-    var infectionDistance = 10;
-
-    var bloodCellStartCount = 50;
-
-    var virusStartCount = 2;
-
-    var defenderSpawnRate = 5000;
-
-    var defenderLifeSpan = 5000;
-
-    var bloodCellLimit = 1000;
-
-    var bloodCellLifespan = 10000;
-
-    var maxDefenderRatio = 0.5;
+    var options = {
+        bloodCellRadius: 3,
+        virusRadius: 2,
+        defenderRadius: 3,
+        defenderRatio: 0.1,
+        defenseDistance: 10,
+        followDistance: 400,
+        infectionDistance: 10,
+        bloodCellStartCount: 200,
+        virusStartCount: 2,
+        bloodCellLimit: 1000,
+        maxDefenderRatio: 0.5,
+    };
 
     var canvas = document.querySelector("#canvas");
     var ctx = canvas.getContext("2d");
@@ -79,16 +65,15 @@ $(document).ready(() => {
         constructor({x,y,id}) {
             super({x,y,id});
             this.isInfected = false;
-            this.radius = bloodCellRadius;
+            this.radius = options.bloodCellRadius;
             this.angle = Math.random() * 360;
             this.speed = 8;
-            this.radius = bloodCellRadius;
         }
 
         checkVirus() {
             var {x, y} = this.pos;
             agents.filter(a => a instanceof Virus).forEach(v => {
-                if(getDistance(x,v.pos.x,y,v.pos.y) < infectionDistance && !this.isInfected) {
+                if(getDistance(x,v.pos.x,y,v.pos.y) < options.infectionDistance && !this.isInfected) {
                     if(Math.random() < 0.1) {
                         this.infect();
                         return false;
@@ -114,7 +99,7 @@ $(document).ready(() => {
 
         divide() {
             var bloodCellCount = agents.filter(a => a instanceof BloodCell).length;
-            if(bloodCellCount < bloodCellLimit) {
+            if(bloodCellCount < options.bloodCellLimit) {
                 agents = [...agents,new BloodCell({x:this.pos.x,y:this.pos.y,id:"bloodcell"+bloodCellCount})];
                 $("#bloodCellCount").text(agents.filter(a => a instanceof BloodCell).length);
             }
@@ -128,7 +113,7 @@ $(document).ready(() => {
             this.color = "green";
             this.angle = Math.random() * 360;
             this.speed = 10;
-            this.radius = virusRadius;
+            this.radius = options.virusRadius;
         }
     }
 
@@ -138,18 +123,18 @@ $(document).ready(() => {
             this.color = "blue";
             this.angle = Math.random() * 360;
             this.speed = 8;
-            this.radius = defenderRadius;
+            this.radius = options.defenderRadius;
         }
 
         checkVirus() {
             var {x, y} = this.pos;
             agents.filter(a => a instanceof Virus).forEach(v => {
                 var dist = getDistance(x,v.pos.x,y,v.pos.y);
-                if(dist < followDistance) {
+                if(dist < options.followDistance) {
                     this.angle = getFollowAngle(x,v.pos.x,y,v.pos.y);
-                    if(dist < defenseDistance) {
+                    if(dist < options.defenseDistance) {
                         if(Math.random() < 0.3) {
-                            if(agents.filter(a => a instanceof Defender).length < Math.floor(maxDefenderRatio * bloodCellStartCount)) {
+                            if(agents.filter(a => a instanceof Defender).length < Math.floor(options.maxDefenderRatio * options.bloodCellStartCount)) {
                                 spawnWhiteBloodCell();
                             } 
                             removeAgent(v.id);
@@ -183,8 +168,8 @@ $(document).ready(() => {
     function spawnWhiteBloodCell() {
         let randX = Math.random() * xLimit;
         let randY = Math.random() * yLimit;
-        agents = [...agents,new Defender({x:randX,y:randY,id:"defender"+agents.filter(a => a instanceof Defender).length})]
-        
+        agents = [...agents,new Defender({x:randX,y:randY,id:"defender"+agents.filter(a => a instanceof Defender).length})];
+        $("#whiteBloodCellCount").text(agents.filter(a => a instanceof Defender).length);
     }
 
     function moveRandom(agents) {
@@ -206,35 +191,137 @@ $(document).ready(() => {
             if(!(agent instanceof Virus)) {
                 agent.checkVirus();
             }
-            if(agent instanceof BloodCell && agents.filter(a => a instanceof BloodCell).length < bloodCellStartCount && !agent.isInfected) {
+            if(agent instanceof BloodCell && agents.filter(a => a instanceof BloodCell).length < options.bloodCellStartCount && !agent.isInfected) {
                 agent.divide();
             }
         });
     }
 
-    var agents = [];
-    
-    $("#bloodCellCount").text(bloodCellStartCount);
-    $("#virusCount").text(virusStartCount);
+    function setOptionsMenuValues() {
+        $("#bloodCellStartCount").val(options.bloodCellStartCount);
+        $("#virusStartCount").val(options.virusStartCount);
+        $("#defenderRatio").val(options.defenderRatio);
+        $("#defenseDistance").val(options.defenseDistance);
+        $("#infectionDistance").val(options.infectionDistance);
+    }
 
-    for(let i = 0; i < bloodCellStartCount; i++) {
-        let randX = (Math.random() * xLimit);
-        let randY = (Math.random() * yLimit);
-        if(i < bloodCellStartCount * defenderRatio) {
-            agents = [...agents,new Defender({x:randX,y:randY,id:"defender"+i})];
+    function setOptionsValues(newValues) {
+        for(var key in newValues) {
+            options[key] = newValues[key];
+        }
+    }
+
+    function setSimulationActiveState(active) {
+        if(active) {
+            $("#startButton").attr("data-running","true").removeClass("btn-success").addClass("btn-danger").text("Stop");
+            $("#optionsButton").attr("disabled","");
+            startSimulation();
         }
         else {
-            agents = [...agents,new BloodCell({x:randX,y:randY,id:"bloodcell"+i})];
+            $("#startButton").attr("data-running","false").removeClass("btn-danger").addClass("btn-success").text("Start");
+            $("#optionsButton").removeAttr("disabled");
+            clearInterval(moveAgentsRandomly);
         }
     }
-
-    for(let i = 0; i < virusStartCount; i++) {
-        let randX = (Math.random() * xLimit);
-        let randY = (Math.random() * yLimit);
-        agents = [...agents,new Virus({x:randX,y:randY,id:"virus"+i})];
+    function showCompleteMessage() {
+        var dialog = $("<div>")
+        .attr({
+            "class":"completeDialog d-flex flex-column align-item-center justify-content-center",
+            "id":"completionDialog"
+        });
+        var message = $("<div>")
+        .attr({
+            "class":"card rounded d-inline-block m-4"
+        })
+        .html(
+            `<div class="card-header">`
+            +`<h2 class="card-title">Simulation Complete</h2>`
+            +`</div>`
+            +`<div class="card-body">`
+            +`<p class="lead">All viruses were eliminated by the white blood cells.</p>`
+            +`</div>`
+            +`<div class="card-footer">`
+            +`<div class="btn-group w-100">`
+            +`<button class="btn btn-warning" id="dialogOptionsButton">Options</button>`
+            +`<button id="dialogRestartButton" class="btn btn-info">Restart</button>`
+            +`</div>`
+            +`</div>`
+        )
+        $(dialog).hide();
+        $(message).appendTo(dialog);
+        $(dialog).appendTo("body");
+        $(dialog).fadeIn();
     }
 
-    var moveAgentsRandomly = setInterval(() => {
-        moveAgents();
-    },100);
+    $(document).on("click","#dialogRestartButton",() => {
+        $("#completionDialog").remove();
+        startSimulation();
+    });
+
+    $(document).on("click","#dialogOptionsButton",() => {
+        $("#completionDialog").remove();
+        $("#optionsMenu").collapse("show");
+        setOptionsMenuValues();
+    });
+
+    $("#optionsButton").click(() => {
+        $("#optionsMenu").collapse("show");
+        setOptionsMenuValues();
+    });
+
+    $("#closeOptionsMenuButton").click(() => {
+        $("#optionsMenu").collapse("hide");
+    });
+
+    $("#updateOptionsButton").click(() => {
+        let bloodCellStartCount = parseInt($("#bloodCellStartCount").val());
+        let virusStartCount = parseInt($("#virusStartCount").val());
+        let defenderRatio = parseFloat($("#defenderRatio").val());
+        let defenseDistance = parseInt($("#defenseDistance").val());
+        let infectionDistance = parseInt($("#infectionDistance").val());
+        setOptionsValues({bloodCellStartCount,virusStartCount,defenderRatio,defenseDistance,infectionDistance});
+        $("#optionsMenu").collapse("hide");
+    });
+
+    $("#startButton").click(() => {
+        setSimulationActiveState($("#startButton").attr("data-running") == "false")
+    });
+
+    function startSimulation() {
+        agents = [];
+
+        for(let i = 0; i < options.bloodCellStartCount; i++) {
+            let randX = (Math.random() * xLimit);
+            let randY = (Math.random() * yLimit);
+            if(i < options.bloodCellStartCount * options.defenderRatio) {
+                agents = [...agents,new Defender({x:randX,y:randY,id:"defender"+i})];
+            }
+            else {
+                agents = [...agents,new BloodCell({x:randX,y:randY,id:"bloodcell"+i})];
+            }
+        }
+
+        $("#bloodCellCount").text(agents.filter(a => a instanceof BloodCell).length);
+        $("#virusCount").text(options.virusStartCount);
+        $("#whiteBloodCellCount").text(agents.filter(a => a instanceof Defender).length);
+
+        for(let i = 0; i < options.virusStartCount; i++) {
+            let randX = (Math.random() * xLimit);
+            let randY = (Math.random() * yLimit);
+            agents = [...agents,new Virus({x:randX,y:randY,id:"virus"+i})];
+        }
+
+        moveAgentsRandomly = setInterval(() => {
+            if(agents.filter(a => a instanceof Virus).length == 0 && agents.filter(a => a instanceof BloodCell && a.isInfected).length == 0) {
+                setSimulationActiveState(false);
+                showCompleteMessage();
+                return;
+            }
+            moveAgents();
+        },100);
+    }
+
+    var moveAgentsRandomly;
+    var agents;
+    
 });

@@ -4,18 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <script
-        src="https://code.jquery.com/jquery-3.4.1.min.js"
-        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
-        crossorigin="anonymous"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <!-- Popper JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
     <script src="./index.js"></script>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <div class="displayCounter">
+    <div class="displayCounter rounded bg-info p-3 m-3 text-white">
         <p>Blood Cells: <span id="bloodCellCount"></span></p>
+        <p>White Blood Cells: <span id="whiteBloodCellCount"></span></p>
         <p>Viruses: <span id="virusCount"></span></p>
+        <div class="btn-group">
+            <button id="optionsButton" class="btn btn-warning">Options</button>
+            <button id="startButton" data-running="false" class="btn btn-success">Start</button>
+        </div>
+    </div>
+    <div class="collapse bg-dark p-4" id="optionsMenu">
+        <div class="w-100 h-100 d-flex flex-column justify-content-center align-items-center">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Blood Cell Start Count</span>
+                </div>
+                <input type="number" class="form-control" min="1" max="250" id="bloodCellStartCount" />
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Virus Start Count</span>
+                </div>
+                <input type="number" class="form-control" min="1" max="250" id="virusStartCount" />
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Infection Distance</span>
+                </div>
+                <input type="number" class="form-control" min="1" max="250" id="infectionDistance" />
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">White Blood Cell Defense Distance</span>
+                </div>
+                <input type="number" class="form-control" min="1" max="250" id="defenseDistance" />
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">White Blood Cell Ratio</span>
+                </div>
+                <input type="number" class="form-control" step="0.1" value="0.1" min="0.1" max="0.9" id="defenderRatio" />
+            </div>
+            <div class="w-100 mb-5 btn-group">
+                <button class="btn btn-danger" id="closeOptionsMenuButton">Cancel</button>
+                <button class="btn btn-success" id="updateOptionsButton">Confirm</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>
