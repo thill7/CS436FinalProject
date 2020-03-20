@@ -1,5 +1,5 @@
 $(document).ready(() => {
-
+    //global attributes used in calculations and default object properties
     var options = {
         bloodCellRadius: 3,
         virusRadius: 2,
@@ -11,25 +11,29 @@ $(document).ready(() => {
         bloodCellStartCount: 200,
         virusStartCount: 2,
         bloodCellLimit: 1000,
-        maxDefenderRatio: 0.5,
+        defaultSpeed: 10,
+        defaultRadius: 3,
+        infectionProbability: 0.1,
+        defenseProbability: 0.3,
     };
-
+    //the drawing environment for "drawing" each agent
     var canvas = document.querySelector("#canvas");
     var ctx = canvas.getContext("2d");
-
+    //the coordinate limits of the window, determining when agents collide with the walls
     var xLimit = canvas.width;
     var yLimit = canvas.height;
 
-    var vmax = xLimit > yLimit ? (xLimit / 100) : (yLimit / 100);
-
+    //the main class from which all agents inherit
     class Cell {
-        constructor({x,y,radius,id}) {
+        constructor({x,y,id}) {
             this.pos = {x,y};
             this.color = "red";
             this.angle = Math.random() * 360;
             this.id = id;
+            this.radius = options.defaultRadius;
+            this.speed = options.defaultSpeed;
         }
-
+        //returns a collection of all neighboring agents within a certain distance
         getNeighbors(agents,dist) {
             var neighbors = agents.filter(a => {
                 let distance = getDistance(this.pos.x,a.pos.x,this.pos.y,a.pos.y);
@@ -37,7 +41,7 @@ $(document).ready(() => {
             });
             return neighbors;
         }
-
+        //moves the agent to a new location if its within the bounds of the window, else it changes direction and stays put
         draw(newXPos,newYPos) {
             if(newXPos <= 0 || newXPos >= xLimit || newYPos <= 0 || newYPos >= yLimit) {
                 this.angle = Math.random() * 360;
@@ -60,7 +64,7 @@ $(document).ready(() => {
         }
 
     }
-
+    //inherits from Cell 
     class BloodCell extends Cell {
         constructor({x,y,id}) {
             super({x,y,id});
@@ -69,12 +73,12 @@ $(document).ready(() => {
             this.angle = Math.random() * 360;
             this.speed = 8;
         }
-
+        //for each virus within a certain distance, there is a chance that the cell will become infected through infect() method
         checkVirus() {
             var {x, y} = this.pos;
             agents.filter(a => a instanceof Virus).forEach(v => {
                 if(getDistance(x,v.pos.x,y,v.pos.y) < options.infectionDistance && !this.isInfected) {
-                    if(Math.random() < 0.1) {
+                    if(Math.random() < options.infectionProbability) {
                         this.infect();
                         return false;
                     }
@@ -82,7 +86,7 @@ $(document).ready(() => {
                 
             });
         }
-
+        //the isInfected boolean is tripped, inhibiting division and setting a 5 second timer, after which the cell will "die" and release copies of the virus
         infect() {
             this.isInfected = true;
             this.color = "yellow";
@@ -96,7 +100,7 @@ $(document).ready(() => {
                 removeAgent(id);
             },5000);
         }
-
+        //a cell will divide only if it is not infected and the current count of blood cells is less than the max amount
         divide() {
             var bloodCellCount = agents.filter(a => a instanceof BloodCell).length;
             if(bloodCellCount < options.bloodCellLimit) {
@@ -106,7 +110,7 @@ $(document).ready(() => {
             
         }
     }
-
+    //virus class inherits from Cell, just using basic functions
     class Virus extends Cell {
         constructor({x,y,id}) {
             super({x,y,id});
@@ -116,7 +120,7 @@ $(document).ready(() => {
             this.radius = options.virusRadius;
         }
     }
-
+    //defender (i.e. White Blood Cell) inherits from Cell
     class Defender extends Cell {
         constructor({x,y,id}) {
             super({x,y,id});
@@ -125,7 +129,7 @@ $(document).ready(() => {
             this.speed = 8;
             this.radius = options.defenderRadius;
         }
-
+        //checks neighbors to look for viruses; will change its angle to "follow" viruses within a certain radius and destroy ones that are closer based on a probaility
         checkVirus() {
             var {x, y} = this.pos;
             agents.filter(a => a instanceof Virus).forEach(v => {
@@ -133,8 +137,8 @@ $(document).ready(() => {
                 if(dist < options.followDistance) {
                     this.angle = getFollowAngle(x,v.pos.x,y,v.pos.y);
                     if(dist < options.defenseDistance) {
-                        if(Math.random() < 0.3) {
-                            if(agents.filter(a => a instanceof Defender).length < Math.floor(options.maxDefenderRatio * options.bloodCellStartCount)) {
+                        if(Math.random() < options.defenseProbability) {
+                            if(agents.filter(a => a instanceof Defender).length < Math.floor(options.defenderRatio * 5 * options.bloodCellStartCount)) {
                                 spawnWhiteBloodCell();
                             } 
                             removeAgent(v.id);
@@ -145,33 +149,34 @@ $(document).ready(() => {
         }
     }
 
+    //used by defender cells to determine the angle to move in the direction of a virus
     function getFollowAngle(x1,x2,y1,y2) {
         var angle = Math.atan2(y1-y2,x1-x2);
         angle = (180 / Math.PI) * angle;
         if (angle < 0) angle = 360 + angle;
         return angle; 
     }
-
+    //used to determine whether an agent is within a certain distance of another agent
     function getDistance(x1, x2, y1, y2) {
         var a = x1 - x2;
         var b = y1 - y2;
         var c = Math.sqrt( a*a + b*b );
         return c;
     }
-
+    //used to destroy agents, i.e. remove them from the "agents" array
     function removeAgent(id) {
         agents = agents.filter(a => a.id != id);
         $("#bloodCellCount").text(agents.filter(a => a instanceof BloodCell).length);
         $("#virusCount").text(agents.filter(a => a instanceof Virus).length);
     }
-
+    //creates a white blood cell at a random location
     function spawnWhiteBloodCell() {
         let randX = Math.random() * xLimit;
         let randY = Math.random() * yLimit;
         agents = [...agents,new Defender({x:randX,y:randY,id:"defender"+agents.filter(a => a instanceof Defender).length})];
         $("#whiteBloodCellCount").text(agents.filter(a => a instanceof Defender).length);
     }
-
+    //used for testing purposes
     function moveRandom(agents) {
         agents.forEach(agent => {
             let newX = Math.random() * xLimit;
@@ -179,7 +184,7 @@ $(document).ready(() => {
             agent.draw(newX,newY);
         });
     }
-
+    //a function repeated at a regular interval that moves agents, makes any agent that's not a virus check for viruses around it, and trigger cell division
     function moveAgents() {
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.beginPath();
@@ -196,7 +201,7 @@ $(document).ready(() => {
             }
         });
     }
-
+    //updates the options menu inputs with the current values of global properties
     function setOptionsMenuValues() {
         $("#bloodCellStartCount").val(options.bloodCellStartCount);
         $("#virusStartCount").val(options.virusStartCount);
@@ -204,13 +209,13 @@ $(document).ready(() => {
         $("#defenseDistance").val(options.defenseDistance);
         $("#infectionDistance").val(options.infectionDistance);
     }
-
+    //updates global options to reflect values defined in options menu
     function setOptionsValues(newValues) {
         for(var key in newValues) {
             options[key] = newValues[key];
         }
     }
-
+    //starts or stops the simulation, based on a boolean passed, and updates buttons to reflect state
     function setSimulationActiveState(active) {
         if(active) {
             $("#startButton").attr("data-running","true").removeClass("btn-success").addClass("btn-danger").text("Stop");
@@ -223,6 +228,7 @@ $(document).ready(() => {
             clearInterval(moveAgentsRandomly);
         }
     }
+    //modal shown when there are no more viruses and no infected cells, giving options to start over or change options
     function showCompleteMessage() {
         var dialog = $("<div>")
         .attr({
@@ -252,7 +258,7 @@ $(document).ready(() => {
         $(dialog).appendTo("body");
         $(dialog).fadeIn();
     }
-
+    //clicks handlers for buttons
     $(document).on("click","#dialogRestartButton",() => {
         $("#completionDialog").remove();
         setSimulationActiveState(true);
@@ -272,7 +278,7 @@ $(document).ready(() => {
     $("#closeOptionsMenuButton").click(() => {
         $("#optionsMenu").collapse("hide");
     });
-
+    //pulls options from option inputs and saves them to the global state
     $("#updateOptionsButton").click(() => {
         let bloodCellStartCount = parseInt($("#bloodCellStartCount").val());
         let virusStartCount = parseInt($("#virusStartCount").val());
@@ -286,7 +292,7 @@ $(document).ready(() => {
     $("#startButton").click(() => {
         setSimulationActiveState($("#startButton").attr("data-running") == "false")
     });
-
+    //initializes and begins running the simulation
     function startSimulation() {
         agents = [];
 
@@ -320,8 +326,9 @@ $(document).ready(() => {
             moveAgents();
         },100);
     }
-
+    //variable that holds the repeating function for moving the agents
     var moveAgentsRandomly;
+    //holds the array of agents
     var agents;
     
 });
